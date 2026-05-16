@@ -1,0 +1,243 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ═══════════════════════════════════════════════════════════
+   THEME — Design System Tokens (Tailwind v4 CSS-first config)
+   ═══════════════════════════════════════════════════════════ */
+@theme inline {
+  /* Tailwind color mappings */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Typography */
+  --font-display: var(--font-sora), sans-serif;
+  --font-sans:    var(--font-inter), sans-serif;
+  --font-mono:    var(--font-jetbrains), monospace;
+
+  /* Backgrounds */
+  --color-bg-darkest:  #050E0E;
+  --color-bg-dark:     #081A1A;
+  --color-bg-teal:     #0A2A2A;
+  --color-bg-teal-mid: #0D3535;
+  --color-bg-teal-lit: #0F4040;
+
+  /* Accent — Neon Lime Green */
+  --color-accent-300: #8FFF70;
+  --color-accent-400: #62D84E;
+  --color-accent-500: #4CC23A;
+  --color-accent-600: #3AAD2A;
+
+  /* Teal Cyan */
+  --color-teal-300: #4DD9C0;
+  --color-teal-400: #2CC0A8;
+  --color-teal-500: #1A9E8A;
+
+  /* Trading semantic */
+  --color-bullish: #62D84E;
+  --color-bearish: #FF4757;
+  --color-neutral: #FFB800;
+
+  /* Text */
+  --color-text-primary:   #FFFFFF;
+  --color-text-secondary: #A8C4C0;
+  --color-text-muted:     #5A8080;
+  --color-text-accent:    #62D84E;
+
+  /* Gradients as background images */
+  --bg-image-hero:    linear-gradient(135deg, #0D3D2A 0%, #0A2A35 50%, #050E0E 100%);
+  --bg-image-section: linear-gradient(180deg, #081A1A 0%, #050E0E 100%);
+  --bg-image-card:    linear-gradient(145deg, #0D3535 0%, #081A1A 100%);
+
+  /* Border radius tokens */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
+  --radius-full: 9999px;
+  --radius:      12px;
+
+  /* Box shadows */
+  --shadow-card:        0 1px 3px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+  --shadow-elevated:    0 8px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(98,216,78,0.12);
+  --shadow-glow-green:  0 0 32px rgba(98,216,78,0.20), 0 0 64px rgba(98,216,78,0.08);
+  --shadow-glow-teal:   0 0 24px rgba(45,192,168,0.15);
+
+  /* shadcn/ui compatibility tokens */
+  --color-card:                   #0D3535;
+  --color-card-foreground:        #FFFFFF;
+  --color-popover:                #081A1A;
+  --color-popover-foreground:     #FFFFFF;
+  --color-primary:                #62D84E;
+  --color-primary-foreground:     #050E0E;
+  --color-secondary:              #0D3535;
+  --color-secondary-foreground:   #A8C4C0;
+  --color-muted:                  #081A1A;
+  --color-muted-foreground:       #5A8080;
+  --color-accent:                 #0D3535;
+  --color-accent-foreground:      #62D84E;
+  --color-destructive:            #FF4757;
+  --color-border:                 rgba(255,255,255,0.10);
+  --color-input:                  rgba(255,255,255,0.08);
+  --color-ring:                   #62D84E;
+  --color-sidebar:                #050E0E;
+  --color-sidebar-foreground:     #A8C4C0;
+  --color-sidebar-primary:        #62D84E;
+  --color-sidebar-primary-foreground: #050E0E;
+  --color-sidebar-accent:         rgba(98,216,78,0.08);
+  --color-sidebar-accent-foreground: #62D84E;
+  --color-sidebar-border:         rgba(255,255,255,0.06);
+  --color-sidebar-ring:           #62D84E;
+  --color-chart-1: #62D84E;
+  --color-chart-2: #4DD9C0;
+  --color-chart-3: #FFB800;
+  --color-chart-4: #FF4757;
+  --color-chart-5: #8FFF70;
+
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* CSS variables for direct use (non-Tailwind contexts, e.g. charts) */
+:root {
+  --background: #050E0E;
+  --foreground: #FFFFFF;
+
+  --color-bg-darkest:  #050E0E;
+  --color-bg-dark:     #081A1A;
+  --color-bg-teal:     #0A2A2A;
+  --color-bg-teal-mid: #0D3535;
+  --color-bg-teal-lit: #0F4040;
+
+  --gradient-hero:    linear-gradient(135deg, #0D3D2A 0%, #0A2A35 50%, #050E0E 100%);
+  --gradient-section: linear-gradient(180deg, #081A1A 0%, #050E0E 100%);
+  --gradient-card:    linear-gradient(145deg, #0D3535 0%, #081A1A 100%);
+
+  --color-accent-300: #8FFF70;
+  --color-accent-400: #62D84E;
+  --color-accent-500: #4CC23A;
+  --color-accent-600: #3AAD2A;
+  --color-accent-glow: rgba(98, 216, 78, 0.20);
+
+  --color-teal-300: #4DD9C0;
+  --color-teal-400: #2CC0A8;
+  --color-teal-500: #1A9E8A;
+
+  --color-border-subtle:  rgba(255, 255, 255, 0.06);
+  --color-border-default: rgba(255, 255, 255, 0.10);
+  --color-border-strong:  rgba(98, 216, 78, 0.25);
+  --color-border-teal:    rgba(45, 192, 168, 0.20);
+
+  --color-bullish:         #62D84E;
+  --color-bullish-subtle:  rgba(98, 216, 78, 0.12);
+  --color-bearish:         #FF4757;
+  --color-bearish-subtle:  rgba(255, 71, 87, 0.12);
+  --color-neutral:         #FFB800;
+  --color-neutral-subtle:  rgba(255, 184, 0, 0.12);
+
+  --color-text-primary:   #FFFFFF;
+  --color-text-secondary: #A8C4C0;
+  --color-text-muted:     #5A8080;
+  --color-text-accent:    #62D84E;
+
+  --shadow-card:        0 1px 3px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+  --shadow-elevated:    0 8px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(98,216,78,0.12);
+  --shadow-glow-green:  0 0 32px rgba(98,216,78,0.20), 0 0 64px rgba(98,216,78,0.08);
+  --shadow-glow-teal:   0 0 24px rgba(45,192,168,0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════════════════════════ */
+@layer base {
+  *, *::before, *::after {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply text-foreground;
+    background-color: #050E0E;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%,
+        rgba(13, 61, 42, 0.6) 0%,
+        transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% 20%,
+        rgba(10, 42, 53, 0.5) 0%,
+        transparent 60%);
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background-color: #62D84E;
+    color: #050E0E;
+  }
+
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { background: #050E0E; }
+  ::-webkit-scrollbar-thumb  { background: #0D3535; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(98, 216, 78, 0.25); }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold text-white;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════ */
+@layer utilities {
+  .font-ticker {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+
+  .text-bullish  { color: #62D84E; }
+  .text-bearish  { color: #FF4757; }
+  .text-neutral  { color: #FFB800; }
+
+  .bg-bullish-subtle { background-color: rgba(98, 216, 78, 0.12); }
+  .bg-bearish-subtle { background-color: rgba(255, 71, 87, 0.12); }
+  .bg-neutral-subtle { background-color: rgba(255, 184, 0, 0.12); }
+
+  .bg-card-surface {
+    background: var(--gradient-card);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 16px;
+  }
+
+  .glow-green { box-shadow: var(--shadow-glow-green); }
+  .glow-teal  { box-shadow: var(--shadow-glow-teal); }
+
+  .hero-section {
+    background: linear-gradient(160deg, #0D3D2A 0%, #0A2E35 35%, #081A1A 65%, #050E0E 100%);
+  }
+
+  .dashboard-bg {
+    background-color: #081A1A;
+    background-image: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(13,53,53,0.4) 0%, transparent 70%);
+  }
+
+  .dot-pattern {
+    background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Sidebar active nav item */
+  .nav-active {
+    border-left: 3px solid #62D84E;
+    background-color: rgba(98, 216, 78, 0.08);
+    color: #62D84E;
+  }
+}
