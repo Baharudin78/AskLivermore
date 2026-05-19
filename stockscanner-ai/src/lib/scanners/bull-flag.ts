@@ -111,7 +111,7 @@ export class BullFlagScanner extends BaseScanner {
     return {
       ticker:       "",   // filled by scanner runner
       setupQuality: Math.round(quality * 10) / 10,
-      breakoutLevel: poleHigh,
+      breakoutLevel: flagHigh,
       stopLevel:     flagLow,
       notes: [
         `Pole gain: +${(bestPole.gain * 100).toFixed(1)}% over ${bestPole.bars} bars`,
@@ -124,7 +124,7 @@ export class BullFlagScanner extends BaseScanner {
         poleBars:          bestPole.bars,
         pullbackPct,
         flagBars:          flagLen,
-        breakoutLevel:     poleHigh,
+        breakoutLevel:     flagHigh,
         flagLow,
         flagHigh,
         channelUpperSlope: upperSlope,
