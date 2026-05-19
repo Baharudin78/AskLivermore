@@ -1,13 +1,19 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { LayoutGrid, List, RefreshCw, SlidersHorizontal } from "lucide-react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import dynamic from "next/dynamic"
+import { LayoutGrid, List, RefreshCw, SlidersHorizontal, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ScannerResultCard } from "@/components/scanner/ScannerResultCard"
 import { ScannerResultRow }  from "@/components/scanner/ScannerResultRow"
 import { SkeletonCard, SkeletonRow } from "@/components/ui/skeleton-card"
 import { EmptyState }        from "@/components/ui/empty-state"
 import type { ScannerResult, ScannerMeta } from "@/types"
+
+const EntryStrategyModal = dynamic(
+  () => import("@/components/strategy/EntryStrategyModal").then((m) => m.EntryStrategyModal),
+  { ssr: false }
+)
 
 interface ScannerPageClientProps {
   scannerSlug: string
@@ -23,20 +29,34 @@ const SECTORS = [
   "Communication Services", "Materials", "Real Estate",
 ]
 
+const SCAN_TIMEOUT_MS = 90_000
+
 export function ScannerPageClient({ scannerSlug, meta }: ScannerPageClientProps) {
-  const [results,   setResults]   = useState<ScannerResult[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [error,     setError]     = useState<string | null>(null)
-  const [cachedAt,  setCachedAt]  = useState<string | null>(null)
-  const [view,      setView]      = useState<ViewMode>("card")
-  const [sortBy,    setSortBy]    = useState<SortKey>("setupQuality")
-  const [sector,    setSector]    = useState("all")
-  const [minPrice,  setMinPrice]  = useState("")
-  const [maxPrice,  setMaxPrice]  = useState("")
+  const [results,        setResults]       = useState<ScannerResult[]>([])
+  const [loading,        setLoading]       = useState(true)
+  const [fromCache,      setFromCache]     = useState(false)
+  const [elapsed,        setElapsed]       = useState(0)
+  const [error,          setError]         = useState<string | null>(null)
+  const [cachedAt,       setCachedAt]      = useState<string | null>(null)
+  const [view,           setView]          = useState<ViewMode>("card")
+  const [sortBy,         setSortBy]        = useState<SortKey>("setupQuality")
+  const [sector,         setSector]        = useState("all")
+  const [minPrice,       setMinPrice]      = useState("")
+  const [maxPrice,       setMaxPrice]      = useState("")
+  const [strategyResult, setStrategyResult] = useState<ScannerResult | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetchResults = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setElapsed(0)
+
+    // Show elapsed seconds while loading so the user knows it's working
+    timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000)
+
+    const controller = new AbortController()
+    const timeout    = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS)
+
     try {
       const params = new URLSearchParams({
         sort:   sortBy,
@@ -44,16 +64,23 @@ export function ScannerPageClient({ scannerSlug, meta }: ScannerPageClientProps)
         ...(minPrice && { minPrice }),
         ...(maxPrice && { maxPrice }),
       })
-      const res  = await fetch(`/api/scanner/${scannerSlug}?${params}`)
+      const res  = await fetch(`/api/scanner/${scannerSlug}?${params}`, { signal: controller.signal })
       const data = await res.json()
 
       if (!res.ok) throw new Error(data.error ?? "Scanner failed")
 
       setResults(data.results ?? [])
       setCachedAt(data.cachedAt ?? null)
+      setFromCache(data.fromCache ?? false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error")
+      if (err instanceof Error && err.name === "AbortError") {
+        setError("Scan timed out after 90 seconds. The market data API may be slow — please retry.")
+      } else {
+        setError(err instanceof Error ? err.message : "Unknown error")
+      }
     } finally {
+      clearTimeout(timeout)
+      if (timerRef.current) clearInterval(timerRef.current)
       setLoading(false)
     }
   }, [scannerSlug, sortBy, sector, minPrice, maxPrice])
@@ -64,8 +91,11 @@ export function ScannerPageClient({ scannerSlug, meta }: ScannerPageClientProps)
     ? Math.round((Date.now() - new Date(cachedAt).getTime()) / 60_000)
     : null
 
+  // Clean up timer on unmount
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current) }, [])
+
   return (
-    <div>
+    <>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         {/* Left: filters */}
@@ -123,6 +153,7 @@ export function ScannerPageClient({ scannerSlug, meta }: ScannerPageClientProps)
             <span className="text-[#5A8080] text-xs hidden sm:block">
               {results.length} results
               {updatedAgo !== null && ` · updated ${updatedAgo}m ago`}
+              {fromCache && <span className="text-[#4DD9C0]"> · cached</span>}
             </span>
           )}
 
@@ -166,6 +197,17 @@ export function ScannerPageClient({ scannerSlug, meta }: ScannerPageClientProps)
         </div>
       </div>
 
+      {/* First-load notice — only shown while loading and no cached results yet */}
+      {loading && !fromCache && elapsed >= 3 && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-[rgba(77,217,192,0.08)] border border-[rgba(77,217,192,0.18)] text-[#4DD9C0] text-sm flex items-center gap-2">
+          <Clock size={14} className="shrink-0 animate-pulse" />
+          <span>
+            Scanning top 100 stocks for {meta.name} patterns&hellip; ({elapsed}s)
+            &nbsp;&mdash;&nbsp;first scan fetches live data and may take up to 90&nbsp;seconds.
+          </span>
+        </div>
+      )}
+
       {/* Error state */}
       {error && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-[rgba(255,71,87,0.10)] border border-[rgba(255,71,87,0.25)] text-[#FF4757] text-sm">
@@ -194,7 +236,7 @@ export function ScannerPageClient({ scannerSlug, meta }: ScannerPageClientProps)
                 key={r.ticker}
                 result={r}
                 pattern={scannerSlug}
-                onStrategy={(res) => console.log("Open strategy:", res.ticker)}
+                onStrategy={(res) => setStrategyResult(res)}
               />
             ))
           }
@@ -248,7 +290,7 @@ export function ScannerPageClient({ scannerSlug, meta }: ScannerPageClientProps)
                       key={r.ticker}
                       result={r}
                       rank={i + 1}
-                      onStrategy={(res) => console.log("Open strategy:", res.ticker)}
+                      onStrategy={(res) => setStrategyResult(res)}
                     />
                   ))
                 }
@@ -257,6 +299,15 @@ export function ScannerPageClient({ scannerSlug, meta }: ScannerPageClientProps)
           </div>
         </div>
       )}
-    </div>
+
+    {/* Entry Strategy Modal */}
+    {strategyResult && (
+      <EntryStrategyModal
+        result={strategyResult}
+        pattern={scannerSlug}
+        onClose={() => setStrategyResult(null)}
+      />
+    )}
+    </>
   )
 }
