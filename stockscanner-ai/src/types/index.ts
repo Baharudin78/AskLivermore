@@ -1,3 +1,8 @@
+/** Standard result type for all async lib functions — never throw, always return */
+export type Result<T> =
+  | { data: T;    error: null   }
+  | { data: null; error: string }
+
 /** OHLCV bar — single trading day candle */
 export interface OHLCV {
   time: string   // YYYY-MM-DD

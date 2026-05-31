@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getStockBars }             from "@/lib/polygon/client"
-import { calculateIndicators }      from "@/lib/indicators/calculator"
-import { calculateEntryLevels }     from "@/lib/strategy/calculator"
+import { getStockBars }               from "@/lib/polygon/client"
+import { calculateIndicators }        from "@/lib/indicators/calculator"
+import { calculateEntryLevels }       from "@/lib/strategy/calculator"
 import { analyzeTechnicalConfluence } from "@/lib/strategy/confluence"
-import { generateTradeSummary }     from "@/lib/groq/entry-summary"
+import { generateTradeSummary }       from "@/lib/groq/entry-summary"
+import {
+  getCachedEntryStrategy,
+  setCachedEntryStrategy,
+} from "@/lib/supabase/cache"
 import type { EntryStrategy, StockIndicators } from "@/types"
 
 interface RequestBody {
@@ -11,35 +15,6 @@ interface RequestBody {
   pattern:     string
   tradeType:   "swing" | "day"
   patternData: Record<string, unknown>
-}
-
-// ---------------------------------------------------------------------------
-// Cache helpers
-// ---------------------------------------------------------------------------
-
-async function getCached(key: string): Promise<EntryStrategy | null> {
-  try {
-    const { supabase } = await import("@/lib/supabase/client")
-    const { data } = await supabase
-      .from("entry_strategies")
-      .select("strategy, expires_at")
-      .eq("cache_key", key)
-      .single()
-    if (!data) return null
-    if (new Date(data.expires_at) < new Date()) return null
-    return data.strategy as EntryStrategy
-  } catch { return null }
-}
-
-async function setCache(key: string, strategy: EntryStrategy) {
-  try {
-    const { supabase } = await import("@/lib/supabase/client")
-    const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString()
-    await supabase.from("entry_strategies").upsert(
-      { cache_key: key, strategy, expires_at: expiresAt },
-      { onConflict: "cache_key" }
-    )
-  } catch { /* non-fatal */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -59,25 +34,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ticker and pattern are required" }, { status: 400 })
   }
 
-  const today    = new Date().toISOString().split("T")[0]
-  const cacheKey = `${ticker}:${pattern}:${tradeType}:${today}`
-
   // Cache hit
-  const cached = await getCached(cacheKey)
-  if (cached) {
-    return NextResponse.json({ strategy: cached, fromCache: true })
+  const { data: cachedData } = await getCachedEntryStrategy(ticker, pattern, tradeType)
+  if (cachedData && "setupQuality" in cachedData) {
+    return NextResponse.json({ strategy: cachedData as unknown as EntryStrategy, fromCache: true })
   }
 
   // Fetch OHLCV
-  let ohlcv
-  try {
-    ohlcv = await getStockBars(ticker, 260)
-  } catch (err) {
+  const ohlcvResult = await getStockBars(ticker, 260)
+  if (ohlcvResult.error || !ohlcvResult.data) {
     return NextResponse.json(
-      { error: `Failed to fetch market data: ${err instanceof Error ? err.message : "unknown"}` },
+      { error: `Failed to fetch market data: ${ohlcvResult.error ?? "no data returned"}` },
       { status: 502 }
     )
   }
+  const ohlcv = ohlcvResult.data
 
   if (ohlcv.length < 60) {
     return NextResponse.json(
@@ -135,7 +106,7 @@ export async function POST(req: NextRequest) {
     aiSummary,
   }
 
-  await setCache(cacheKey, strategy)
+  await setCachedEntryStrategy(ticker, pattern, tradeType, strategy as unknown as Record<string, unknown>)
 
   return NextResponse.json({ strategy, fromCache: false })
 }
